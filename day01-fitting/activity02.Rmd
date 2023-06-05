@@ -6,3 +6,404 @@ output: github_document
 ```{r global-options, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+## Task 1: Obtaining the dataset
+
+**1.Explain why you chose that - why is it interesting to you?**
+
+* I have taken the dataset of Starbucks Nutrition Facts.I felt knowing the nutrition facts for several Starbucks food items is interesting.
+
+**2.Explain where you obtained your data from.**
+
+* I have obtained the dataset from Kaggle public domain datasets.
+
+**3.Who created this dataset?**
+
+* The dataset was created by Utkarsh Singh.
+
+
+## Task 2: Load the necessary packages
+
+```{r loading libraries}
+library(tidyverse)
+library(tidymodels)
+library(ggplot2)
+library(dplyr)
+library(broom)
+```
+
+## Task 3: Load your data
+
+```{r Loading the data}
+starbucks<- read_csv("starbucks.csv")
+head(starbucks)
+```
+
+```{r}
+glimpse(starbucks)
+```
+
+```{r, Dimensions of the dataset}
+
+dimensions <- dim(starbucks)
+num_rows <- dimensions[1]  # Number of rows
+num_cols <- dimensions[2]  # Number of columns
+
+# Printing the dimensions
+print(paste("Number of rows:", num_rows))
+print(paste("Number of columns:", num_cols))
+
+```
+
+**1.What are the dimensions of the dataset? What does each row represent?**
+
+* The dimensions of the dataset are 77(rows/observations) x 8(columns/variables)
+Each row corresponds to a specific food item. 
+
+* It contains 7 variables/columns: item, calories, fat, carb, fiber, protein, and type.
+
+* Each row represents a specific food item.
+
+**2.Do you have multiple measurements over time? Across different locations? Do you plan on focusing on all of these values? Do you need to subset your dataset to be more focused?**
+
+* There is no explicit information about multiple measurements over time or across different locations in the Starbucks dataset. The dataset primarily consists of food items and their corresponding nutritional information.
+
+* I am interested in analyzing the entire dataset and explore relationships between the variables.But for Simple Linera Regression I would like to subset the data to include only the "calories" and "fiber" variables.
+
+**3.What two variables are you focusing on? That is, what is your research question and what information do you have to explore this question?**
+
+* The two variable that I am focusing is "calories" as the dependent variable and "fiber" as the independent variable.
+
+* My research question is to explore how the fiber content (independent variable) relates to the number of calories (dependent variable) in the food items which is provided in the starbucks dataset.
+
+# Task 4: Explore your data
+
+**4.Create a new R code chunk (or multiple R code chunks) and plot each of your variables - separately and together. Be sure to describe what you notice/wonder. Does the relationship look linear?**
+
+```{r, column names}
+colnames(starbucks)
+```
+
+
+```{r}
+# Plotting variables separately
+# 1. Fat
+ggplot(starbucks, aes(x = factor(1), y = fat)) +
+  geom_boxplot() +
+  labs(title = "Box Plot of Fat",
+       x = "", y = "Fat")
+
+# 2. Type
+ggplot(starbucks, aes(x = type)) +
+  geom_bar() +
+  labs(title = "Bar Plot of Type",
+       x = "Type", y = "Count")
+
+# Plotting variables together
+ggplot(starbucks, aes(x = fat, y = calories)) +
+  geom_point() +
+  labs(title = "Scatter Plot of Fat vs Calories",
+       x = "Fat", y = "Calories")
+
+```
+
+* The box plot shows the distribution of the 'fat' variable and the distribution of fat appears to be positively skewed, with a few high values as outliers.
+
+* The bar plot represents the frequency/count of each 'type' category. The 'bakery' type appears to be the most common, followed by 'petite', 'sandwich', 'bistro box', 'hot breakfast', and 'salad'.
+
+* The scatter plot shows the relationship between 'fat' and 'calories.
+
+* The plot does not show a clear linear relationship between 'fat' and 'calories'.There seems to be a general positive trend where higher values of 'fat' tend to correspond to higher values of 'calories'.
+
+
+
+```{r}
+# Scatter plot for calories
+plot_calories <- ggplot(starbucks, aes(x = calories, y = "")) +
+  geom_point(color = "blue") +
+  labs(x = "Calories") +
+  theme_minimal()
+
+# Scatter plot for fat
+plot_fat <- ggplot(starbucks, aes(x = fat, y = "")) +
+  geom_point(color = "red") +
+  labs(x = "Fat") +
+  theme_minimal()
+
+# Scatter plot for carb
+plot_carb <- ggplot(starbucks, aes(x = carb, y = "")) +
+  geom_point(color = "green") +
+  labs(x = "Carb") +
+  theme_minimal()
+
+# Scatter plot for fiber
+plot_fiber <- ggplot(starbucks, aes(x = fiber, y = "")) +
+  geom_point(color = "purple") +
+  labs(x = "Fiber") +
+  theme_minimal()
+
+# Scatter plot for protein
+plot_protein <- ggplot(starbucks, aes(x = protein, y = "")) +
+  geom_point(color = "orange") +
+  labs(x = "Protein") +
+  theme_minimal()
+
+# Scatter plot for the relationship between fiber and calories
+plot_fiber_calories <- ggplot(starbucks, aes(x = fiber, y = calories)) +
+  geom_point(color = "blue") +
+  labs(x = "Fiber", y = "Calories") +
+  theme_minimal()
+
+# Display the scatter plots
+plot_calories
+plot_fat
+plot_carb
+plot_fiber
+plot_protein
+plot_fiber_calories
+
+```
+
+* The scatter plot for fiber and calories reveals a somewhat positive linear trend. As the fiber content increases, there is a tendency for the calorie count to rise. However, there is still considerable variation in calorie levels for different fiber values.
+
+## Task 5: Sum of squared residuals
+
+**5.What was the smallest sum of squares that you got? What was the relationship between your line and the data points?**
+
+* Sum of Squares:  918042
+* Coefficients:
+(Intercept)            x  
+   306.8311       0.2348  
+* The relationship is linear.
+
+**6.What was the largest sum of squares you got? What was the relationship between your line and the data points?**
+
+* Sum of Squares:  8869465
+* Coefficients:
+(Intercept)            x  
+     -86.76        50.00
+* The relationship is linear.
+     
+## Task 6: The linear model
+
+```{r}
+# Create a subset of the data with the variables of interest
+subset_data1 <- starbucks %>%
+  select(calories, fiber)
+
+# Fit the linear regression model
+lm_model <- lm(calories ~ fiber, data = subset_data1)
+
+# Summarize the model
+summary(lm_model)
+
+# Plot the regression line
+ggplot(subset_data1, aes(x = fiber, y = calories)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Fiber", y = "Calories") +
+  theme_minimal()
+
+```
+
+
+```{r}
+# Created a parsnip specification for a linear model
+
+lm_spec <- linear_reg() %>%
+  set_mode("regression") %>%
+  set_engine("lm")
+
+# Fit our specification to our data
+
+slr_mod <- lm_spec %>% 
+fit(calories ~ fiber, data = subset_data1)
+
+# View our model output
+tidy(slr_mod)
+```
+
+**1.Interpret the y-intercept.**
+
+* The least squares regression line for the linear model is:
+
+       calories = 310 + 13.0 * fiber
+
+* Interpretations:The y-intercept (310) represents the estimated average number of calories when the fiber content is zero. In other words, when there is no fiber in the food item, the model estimates that the average number of calories is 310.
+
+**2.Interpret the slope**
+
+* The slope (13.0) represents the estimated change in the number of calories for a one-unit increase in fiber content, holding other variables constant. So, for each additional unit of fiber in the food item, the model estimates that the number of calories increases by 13.0 units on average.
+
+# Day-2 Activity [Using the training data]
+
+## Splitting the dataset
+
+```{r,slitiing the dataset}
+# set seed before random split
+set.seed(123)
+
+# put 80% of the data into the training set
+starbucks_split <- initial_split(starbucks, prop = 0.80)
+
+
+# assign the two splits to data frames - with descriptive names
+starbucks_train <- training(starbucks_split)
+starbucks_test <- testing(starbucks_split)
+
+# splits
+
+starbucks_train
+
+starbucks_test
+
+```
+
+```{r, Dimensions of the training dataset}
+
+dimensions <- dim(starbucks_train)
+num_rows <- dimensions[1]  # Number of rows
+num_cols <- dimensions[2]  # Number of columns
+
+# Printing the dimensions
+print(paste("Number of rows:", num_rows))
+print(paste("Number of columns:", num_cols))
+
+```
+
+```{r, training data}
+# Create a subset of the training data with the variables of interest
+subset_data2 <- starbucks_train %>%
+  select(calories, fiber)
+
+# Fit the linear regression model
+lm_model <- lm(calories ~ fiber, data = subset_data2)
+
+# Summarize the model
+summary(lm_model)
+
+# Plot the regression line
+ggplot(subset_data2, aes(x = fiber, y = calories)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(x = "Fiber", y = "Calories") +
+  theme_minimal()
+
+```
+
+
+```{r,linear model for training data}
+# Created a parsnip specification for a linear model for training dataset
+
+lm_spec <- linear_reg() %>%
+  set_mode("regression") %>%
+  set_engine("lm")
+
+# Fit our specification to our training data
+
+slr_mod <- lm_spec %>% 
+fit(calories ~ fiber, data = subset_data2)
+
+# View our model output
+tidy(slr_mod)
+```
+
+**1.Interpret the y-intercept.**
+
+* The least squares regression line for the linear model is:
+
+       calories = 292 + 17 * fiber
+
+* Interpretations:The y-intercept (intercept term) is 292. This represents the predicted number of calories when the fiber content is zero. In this case, it suggests that food items with zero fiber would have an estimated calorie count of 292.
+
+**2.Interpret the slope**
+
+* The slope of the fiber variable is 17. It indicates that for each unit increase in fiber, the predicted number of calories increases by 17. This implies that there is a positive relationship between fiber content and calorie count. As the fiber content of a food item increases, its calorie count tends to increase as well.
+
+```{}
+# Generate augmented data for testing using the model and testing data
+slr_aug <- augment(slr_fit, new_data = starbucks_test)
+
+# View the augmented data
+slr_aug
+
+```
+
+
+
+```{r}
+# Load the required libraries
+library(broom)
+
+# Create a parsnip specification for a linear model for the training dataset
+lm_spec <- linear_reg() %>%
+  set_mode("regression") %>%
+  set_engine("lm")
+
+# Fit the specification to the training data
+slr_mod <- lm_spec %>%
+  fit(calories ~ fiber, data = subset_data2)
+
+# Use augment to calculate the fitted values and residuals
+slr_aug <- augment(slr_mod, new_data = starbucks_test)
+
+# View the augmented data with fitted values and residuals
+slr_aug
+
+```
+
+
+
+```{r}
+# Re-run the linear regression model
+slr_mod <- lm(calories ~ fiber, data = starbucks_test)
+
+# Calculate fitted values
+fitted_values <- predict(slr_mod)
+
+# Calculate residuals
+residuals <- resid(slr_mod)
+
+# Create a data frame to store the fitted values and residuals
+slr_aug <- data.frame(fitted_values = fitted_values, residuals = residuals)
+
+slr_aug
+
+
+```
+
+```{r}
+# Generate predictions on the testing data using augmented data
+predictions <- slr_aug$.fitted
+
+# Create a data frame with the actual values and predicted values
+prediction_results <- data.frame(
+  Actual = slr_aug$calories,
+  Predicted = predictions
+)
+
+# View the prediction results
+prediction_results
+
+```
+
+
+```{r}
+# Generate augmented data for testing using the model and testing data
+slr_aug <- augment(slr_mod, newdata = starbucks_test)
+
+# Compute residuals manually
+slr_aug$residuals <- slr_aug$.resid
+
+# Create a plot of residuals vs. fitted values
+ggplot(slr_aug, aes(x = .fitted, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red") +
+  labs(x = "Fitted Values", y = "Residuals") +
+  ggtitle("Residuals vs. Fitted Values") +
+  theme_minimal()
+
+```
+
+* Here the plots are randomly scattered throughout the plane indicating that
+there isn't any linear relation between the variables.
